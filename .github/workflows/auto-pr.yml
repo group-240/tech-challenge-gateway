@@ -1,0 +1,53 @@
+name: "Auto Create PR"
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR exists and create if not
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          REPO="${GITHUB_REPOSITORY}"
+          
+          echo "Checking for existing PR from '$BRANCH_NAME' to 'main'..."
+          
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --base main --state open --json number --jq '.[0].number')
+          
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for branch '$BRANCH_NAME' -> main"
+            echo "https://github.com/$REPO/pull/$EXISTING_PR"
+          else
+            echo "No existing PR found. Creating new PR..."
+            
+            COMMIT_MSG=$(git log -1 --pretty=%s)
+            COMMIT_INFO=$(git log -1 --pretty=format:'%h - %s (%an, %ar)')
+            
+            PR_BODY="## Auto-generated PR
+          
+          This PR was automatically created from branch $BRANCH_NAME.
+          
+          ### Last Commit
+          $COMMIT_INFO"
+            
+            gh pr create \
+              --base main \
+              --head "$BRANCH_NAME" \
+              --title "$COMMIT_MSG" \
+              --body "$PR_BODY" || echo "PR may already exist or failed to create"
+          fi

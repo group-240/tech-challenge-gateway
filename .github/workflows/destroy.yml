@@ -1,0 +1,84 @@
+name: 🧹 Destroy Gateway & Lambda - DANGER ZONE
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type "DESTROY-GATEWAY" to confirm deletion'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.10.0
+
+jobs:
+  validate-confirmation:
+    name: 🔐 Validate Destruction Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Confirmation
+        run: |
+          if [ "${{ inputs.confirmation }}" != "DESTROY-GATEWAY" ]; then
+            echo "❌ Confirmation failed! You must type exactly 'DESTROY-GATEWAY' to proceed."
+            exit 1
+          fi
+          echo "✅ Confirmation validated"
+          echo "⚠️ WARNING: This will DELETE API Gateway and Lambda functions managed by THIS repository!"
+
+  destroy-gateway:
+    name: 🗑️ Destroy Gateway & Lambda
+    runs-on: ubuntu-latest
+    needs: validate-confirmation
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: ⚙️ Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔍 Terraform Init
+        run: terraform init
+
+      - name: 📋 List Resources Before Destroy
+        run: |
+          echo "📊 Resources managed by THIS repository (gateway state):"
+          terraform state list || echo "No state found"
+        continue-on-error: true
+
+      - name: 💥 Terraform Destroy
+        run: |
+          echo "🗑️ Destroying ONLY resources managed by this Terraform state..."
+          echo "This will NOT affect resources from other repositories."
+          terraform destroy -auto-approve
+
+      # ⚠️ IMPORTANT: Do NOT add AWS CLI cleanup commands here!
+      # This repository should ONLY destroy resources in its Terraform state.
+      # Adding AWS CLI commands to delete by name pattern would affect
+      # resources from other repositories (infra, customer, orders, payments).
+
+      - name: 📊 Verify Destruction
+        if: always()
+        run: |
+          echo "🔍 Checking remaining resources in Terraform state..."
+          terraform state list || echo "✅ All resources destroyed from this state"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🧹 GATEWAY DESTRUCTION COMPLETE"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Repository: tech-challenge-gateway"
+          echo "State Key: gateway/terraform.tfstate"
+          echo "Resources: API Gateway, Lambda (CPF Auth), VPC Link"
+          echo "Timestamp: $(date)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
