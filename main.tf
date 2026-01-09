@@ -148,7 +148,9 @@ resource "aws_api_gateway_deployment" "tech_challenge_api_deployment" {
     aws_api_gateway_integration.orders_get,
     aws_api_gateway_integration.products_get,
     aws_api_gateway_integration.payments_post,
-    aws_api_gateway_integration.webhooks_post
+    aws_api_gateway_integration.webhooks_post,
+    aws_api_gateway_integration.auth_cpf_lambda,
+    aws_api_gateway_integration.options_auth_cpf
   ]
 
   lifecycle {

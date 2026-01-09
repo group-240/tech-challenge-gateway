@@ -167,7 +167,6 @@ resource "aws_lambda_function" "auth_cpf" {
       CUSTOMER_SERVICE_URL = "http://${data.aws_lb.app_nlb.dns_name}/api/customers"
       COGNITO_USER_POOL_ID = data.terraform_remote_state.infra.outputs.cognito_user_pool_id
       COGNITO_CLIENT_ID    = data.terraform_remote_state.infra.outputs.cognito_user_pool_client_id
-      AWS_REGION           = var.aws_region
     }
   }
 
