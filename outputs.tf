@@ -41,3 +41,19 @@ output "nlb_dns_name" {
   description = "DNS name do NLB usado pelo API Gateway"
   value       = data.aws_lb.app_nlb.dns_name
 }
+
+# Lambda Outputs
+output "lambda_auth_function_name" {
+  description = "Nome da função Lambda de autenticação"
+  value       = aws_lambda_function.auth_cpf.function_name
+}
+
+output "lambda_auth_function_arn" {
+  description = "ARN da função Lambda de autenticação"
+  value       = aws_lambda_function.auth_cpf.arn
+}
+
+output "auth_endpoint_url" {
+  description = "URL do endpoint de autenticação por CPF"
+  value       = "${aws_api_gateway_stage.dev.invoke_url}/auth/cpf"
+}

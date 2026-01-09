@@ -1,23 +1,16 @@
-data "terraform_remote_state" "core" {
+# Remote State - Infra (VPC, EKS, ECR, Cognito, NLB)
+data "terraform_remote_state" "infra" {
   backend = "s3"
   config = {
-    bucket = "tech-challenge-tfstate-533267363894-10"
-    key    = "core/terraform.tfstate"
+    bucket = "tech-challenge-tfstate-group240"
+    key    = "infra/terraform.tfstate"
     region = "us-east-1"
   }
 }
 
-data "terraform_remote_state" "application" {
-  backend = "s3"
-  config = {
-    bucket = "tech-challenge-tfstate-533267363894-10"
-    key    = "application/terraform.tfstate"
-    region = "us-east-1"
-  }
-}
-
+# NLB data source
 data "aws_lb" "app_nlb" {
-  arn = data.terraform_remote_state.core.outputs.nlb_arn
+  arn = data.terraform_remote_state.infra.outputs.nlb_arn
 }
 
 resource "aws_api_gateway_rest_api" "tech_challenge_api" {
@@ -201,7 +194,7 @@ resource "aws_api_gateway_method_settings" "all" {
 resource "aws_api_gateway_vpc_link" "eks" {
   name        = "${var.project_name}-vpc-link"
   description = "VPC Link para conectar API Gateway ao NLB do EKS"
-  target_arns = [data.terraform_remote_state.core.outputs.nlb_arn]
+  target_arns = [data.terraform_remote_state.infra.outputs.nlb_arn]
 
   tags = {
     Name        = "${var.project_name}-vpc-link"
@@ -218,7 +211,7 @@ resource "aws_api_gateway_authorizer" "cognito" {
   name            = "${var.project_name}-cognito-authorizer"
   rest_api_id     = aws_api_gateway_rest_api.tech_challenge_api.id
   type            = "COGNITO_USER_POOLS"
-  provider_arns   = [data.terraform_remote_state.core.outputs.cognito_user_pool_arn]
+  provider_arns   = [data.terraform_remote_state.infra.outputs.cognito_user_pool_arn]
   identity_source = "method.request.header.Authorization"
 }
 
