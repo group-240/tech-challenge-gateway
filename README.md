@@ -1,6 +1,6 @@
 # Tech Challenge API Gateway
 
-This project sets up an AWS API Gateway using Terraform to manage various RESTful APIs. The APIs are defined in the `refs` directory, and the infrastructure is managed through Terraform modules.
+This project sets up an AWS **API Gateway** using Terraform to manage various RESTful APIs. The APIs are defined in the `refs` directory, and the infrastructure is managed through Terraform modules.
 
 ## Project Structure
 
