@@ -52,10 +52,31 @@ resource "aws_api_gateway_resource" "order" {
   path_part   = "orders"
 }
 
+# Sub-recurso /orders/{id}
+resource "aws_api_gateway_resource" "order_id" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  parent_id   = aws_api_gateway_resource.order.id
+  path_part   = "{orderId}"
+}
+
+# Sub-recurso /orders/{id}/status
+resource "aws_api_gateway_resource" "order_status" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  parent_id   = aws_api_gateway_resource.order_id.id
+  path_part   = "status"
+}
+
 resource "aws_api_gateway_resource" "payment" {
   rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
   parent_id   = aws_api_gateway_rest_api.tech_challenge_api.root_resource_id
   path_part   = "payments"
+}
+
+# Sub-recurso /payments/{id}
+resource "aws_api_gateway_resource" "payment_id" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  parent_id   = aws_api_gateway_resource.payment.id
+  path_part   = "{paymentId}"
 }
 
 resource "aws_api_gateway_resource" "product" {
@@ -85,12 +106,46 @@ resource "aws_api_gateway_method" "get_orders" {
   authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
+resource "aws_api_gateway_method" "post_orders" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.order.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+# PUT /orders/{id}/status
+resource "aws_api_gateway_method" "put_order_status" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.order_status.id
+  http_method   = "PUT"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+
+  request_parameters = {
+    "method.request.path.orderId" = true
+  }
+}
+
 resource "aws_api_gateway_method" "post_payments" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.payment.id
   http_method   = "POST"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+# GET /payments/{id}
+resource "aws_api_gateway_method" "get_payment_by_id" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.payment_id.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+
+  request_parameters = {
+    "method.request.path.paymentId" = true
+  }
 }
 
 resource "aws_api_gateway_method" "get_products" {
@@ -100,11 +155,27 @@ resource "aws_api_gateway_method" "get_products" {
   authorization = "NONE" # Produtos públicos
 }
 
+resource "aws_api_gateway_method" "post_products" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.product.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
 resource "aws_api_gateway_method" "get_categories" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.category.id
   http_method   = "GET"
   authorization = "NONE" # Categorias públicas
+}
+
+resource "aws_api_gateway_method" "post_categories" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.category.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
 resource "aws_api_gateway_method" "get_customers" {
@@ -113,6 +184,13 @@ resource "aws_api_gateway_method" "get_customers" {
   http_method   = "GET"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_method" "post_customers" {
+  rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id   = aws_api_gateway_resource.customer.id
+  http_method   = "POST"
+  authorization = "NONE" # Registro de cliente público
 }
 
 resource "aws_api_gateway_method" "post_webhooks" {
@@ -135,7 +213,10 @@ resource "aws_api_gateway_deployment" "tech_challenge_api_deployment" {
       aws_api_gateway_resource.customer.id,
       aws_api_gateway_resource.health_check.id,
       aws_api_gateway_resource.order.id,
+      aws_api_gateway_resource.order_id.id,
+      aws_api_gateway_resource.order_status.id,
       aws_api_gateway_resource.payment.id,
+      aws_api_gateway_resource.payment_id.id,
       aws_api_gateway_resource.product.id,
       aws_api_gateway_resource.webhook.id,
     ]))
@@ -144,10 +225,16 @@ resource "aws_api_gateway_deployment" "tech_challenge_api_deployment" {
   depends_on = [
     aws_api_gateway_integration.health_get,
     aws_api_gateway_integration.categories_get,
+    aws_api_gateway_integration.categories_post,
     aws_api_gateway_integration.customers_get,
+    aws_api_gateway_integration.customers_post,
     aws_api_gateway_integration.orders_get,
+    aws_api_gateway_integration.orders_post,
+    aws_api_gateway_integration.orders_status_put,
     aws_api_gateway_integration.products_get,
+    aws_api_gateway_integration.products_post,
     aws_api_gateway_integration.payments_post,
+    aws_api_gateway_integration.payments_get_by_id,
     aws_api_gateway_integration.webhooks_post,
     aws_api_gateway_integration.auth_cpf_lambda,
     aws_api_gateway_integration.options_auth_cpf
@@ -234,7 +321,7 @@ resource "aws_api_gateway_integration" "health_get" {
   connection_id           = aws_api_gateway_vpc_link.eks.id
 }
 
-# Integração para /categories
+# Integração para /categories (GET)
 resource "aws_api_gateway_integration" "categories_get" {
   rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id = aws_api_gateway_resource.category.id
@@ -247,7 +334,20 @@ resource "aws_api_gateway_integration" "categories_get" {
   connection_id           = aws_api_gateway_vpc_link.eks.id
 }
 
-# Integração para /customers
+# Integração para /categories (POST)
+resource "aws_api_gateway_integration" "categories_post" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.category.id
+  http_method = aws_api_gateway_method.post_categories.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "POST"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/categories"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+}
+
+# Integração para /customers (GET)
 resource "aws_api_gateway_integration" "customers_get" {
   rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id = aws_api_gateway_resource.customer.id
@@ -260,7 +360,20 @@ resource "aws_api_gateway_integration" "customers_get" {
   connection_id           = aws_api_gateway_vpc_link.eks.id
 }
 
-# Integração para /orders
+# Integração para /customers (POST)
+resource "aws_api_gateway_integration" "customers_post" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.customer.id
+  http_method = aws_api_gateway_method.post_customers.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "POST"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/customers"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+}
+
+# Integração para /orders (GET)
 resource "aws_api_gateway_integration" "orders_get" {
   rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id = aws_api_gateway_resource.order.id
@@ -273,7 +386,37 @@ resource "aws_api_gateway_integration" "orders_get" {
   connection_id           = aws_api_gateway_vpc_link.eks.id
 }
 
-# Integração para /products
+# Integração para /orders (POST)
+resource "aws_api_gateway_integration" "orders_post" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.order.id
+  http_method = aws_api_gateway_method.post_orders.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "POST"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/orders"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+}
+
+# Integração para /orders/{id}/status (PUT)
+resource "aws_api_gateway_integration" "orders_status_put" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.order_status.id
+  http_method = aws_api_gateway_method.put_order_status.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "PUT"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/orders/{orderId}/status"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+
+  request_parameters = {
+    "integration.request.path.orderId" = "method.request.path.orderId"
+  }
+}
+
+# Integração para /products (GET)
 resource "aws_api_gateway_integration" "products_get" {
   rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id = aws_api_gateway_resource.product.id
@@ -281,6 +424,19 @@ resource "aws_api_gateway_integration" "products_get" {
 
   type                    = "HTTP_PROXY"
   integration_http_method = "GET"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/products"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+}
+
+# Integração para /products (POST)
+resource "aws_api_gateway_integration" "products_post" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.product.id
+  http_method = aws_api_gateway_method.post_products.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "POST"
   uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/products"
   connection_type         = "VPC_LINK"
   connection_id           = aws_api_gateway_vpc_link.eks.id
@@ -297,6 +453,23 @@ resource "aws_api_gateway_integration" "payments_post" {
   uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/payments"
   connection_type         = "VPC_LINK"
   connection_id           = aws_api_gateway_vpc_link.eks.id
+}
+
+# Integração para /payments/{id} (GET)
+resource "aws_api_gateway_integration" "payments_get_by_id" {
+  rest_api_id = aws_api_gateway_rest_api.tech_challenge_api.id
+  resource_id = aws_api_gateway_resource.payment_id.id
+  http_method = aws_api_gateway_method.get_payment_by_id.http_method
+
+  type                    = "HTTP_PROXY"
+  integration_http_method = "GET"
+  uri                     = "http://${data.aws_lb.app_nlb.dns_name}/api/payments/{paymentId}"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.eks.id
+
+  request_parameters = {
+    "integration.request.path.paymentId" = "method.request.path.paymentId"
+  }
 }
 
 # Integração para /webhooks (POST)
