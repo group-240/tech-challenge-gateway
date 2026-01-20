@@ -245,10 +245,42 @@ resource "aws_api_gateway_deployment" "tech_challenge_api_deployment" {
   }
 }
 
+# Log Group para API Gateway Access Logs
+resource "aws_cloudwatch_log_group" "api_gateway" {
+  name              = "/tech-challenge/api-gateway"
+  retention_in_days = 7
+
+  tags = {
+    Name        = "api-gateway-logs"
+    Environment = "dev"
+    ManagedBy   = "terraform"
+  }
+}
+
 resource "aws_api_gateway_stage" "dev" {
   deployment_id = aws_api_gateway_deployment.tech_challenge_api_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   stage_name    = "dev"
+
+  # Access Logging
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_gateway.arn
+    format = jsonencode({
+      requestId         = "$context.requestId"
+      ip                = "$context.identity.sourceIp"
+      caller            = "$context.identity.caller"
+      user              = "$context.identity.user"
+      requestTime       = "$context.requestTime"
+      httpMethod        = "$context.httpMethod"
+      resourcePath      = "$context.resourcePath"
+      status            = "$context.status"
+      protocol          = "$context.protocol"
+      responseLength    = "$context.responseLength"
+      integrationError  = "$context.integrationErrorMessage"
+      errorMessage      = "$context.error.message"
+      authorizerError   = "$context.authorizer.error"
+    })
+  }
 
   tags = {
     Name        = "${var.project_name}-api-stage-dev"
