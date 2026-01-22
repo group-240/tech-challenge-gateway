@@ -102,16 +102,14 @@ resource "aws_api_gateway_method" "get_orders" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.order.id
   http_method   = "GET"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_method" "post_orders" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.order.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 # PUT /orders/{id}/status
@@ -119,8 +117,7 @@ resource "aws_api_gateway_method" "put_order_status" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.order_status.id
   http_method   = "PUT"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 
   request_parameters = {
     "method.request.path.orderId" = true
@@ -131,8 +128,7 @@ resource "aws_api_gateway_method" "post_payments" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.payment.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 # GET /payments/{id}
@@ -140,8 +136,7 @@ resource "aws_api_gateway_method" "get_payment_by_id" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.payment_id.id
   http_method   = "GET"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 
   request_parameters = {
     "method.request.path.paymentId" = true
@@ -159,8 +154,7 @@ resource "aws_api_gateway_method" "post_products" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.product.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_method" "get_categories" {
@@ -174,16 +168,14 @@ resource "aws_api_gateway_method" "post_categories" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.category.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_method" "get_customers" {
   rest_api_id   = aws_api_gateway_rest_api.tech_challenge_api.id
   resource_id   = aws_api_gateway_resource.customer.id
   http_method   = "GET"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_method" "post_customers" {
@@ -300,18 +292,6 @@ resource "aws_api_gateway_vpc_link" "eks" {
     Environment = "dev"
     ManagedBy   = "terraform"
   }
-}
-
-# ------------------------------------------------------------------
-# Cognito Authorizer para API Gateway
-# ------------------------------------------------------------------
-
-resource "aws_api_gateway_authorizer" "cognito" {
-  name            = "${var.project_name}-cognito-authorizer"
-  rest_api_id     = aws_api_gateway_rest_api.tech_challenge_api.id
-  type            = "COGNITO_USER_POOLS"
-  provider_arns   = [data.terraform_remote_state.infra.outputs.cognito_user_pool_arn]
-  identity_source = "method.request.header.Authorization"
 }
 
 # ------------------------------------------------------------------
