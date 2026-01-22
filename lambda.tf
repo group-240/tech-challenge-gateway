@@ -20,9 +20,6 @@ const http = require('http');
 
 // Configuração
 const CUSTOMER_SERVICE_URL = process.env.CUSTOMER_SERVICE_URL || 'http://customer-service.tech-challenge:80';
-const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
-const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID;
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // Helper para fazer requisições HTTP
 function makeRequest(url, options = {}) {
@@ -105,32 +102,16 @@ exports.handler = async (event) => {
     const cleanCpf = cpf.replace(/\D/g, '');
 
     // Consultar cliente no microsserviço customer
-    console.log('Consultando cliente com CPF:', cleanCpf);
+    console.log('Validando CPF:', cleanCpf);
     
-    // Em produção, isso chamaria o serviço customer via NLB
-    // Por simplicidade, geramos um token mock baseado no CPF
-    
-    // Gerar token de identificação (em produção, seria JWT do Cognito)
-    const tokenPayload = {
-      sub: cleanCpf,
-      cpf: cleanCpf,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hora
-      iss: 'tech-challenge-auth'
-    };
-
-    // Token simples (em produção, seria assinado pelo Cognito)
-    const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
-
+    // Retorna sucesso - autenticação removida
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        message: 'Cliente identificado com sucesso',
-        cpf: cleanCpf,
-        token: token,
-        expiresIn: 3600
+        message: 'CPF validado com sucesso',
+        cpf: cleanCpf
       })
     };
 
@@ -165,8 +146,6 @@ resource "aws_lambda_function" "auth_cpf" {
   environment {
     variables = {
       CUSTOMER_SERVICE_URL = "http://${data.aws_lb.app_nlb.dns_name}/api/customers"
-      COGNITO_USER_POOL_ID = data.terraform_remote_state.infra.outputs.cognito_user_pool_id
-      COGNITO_CLIENT_ID    = data.terraform_remote_state.infra.outputs.cognito_user_pool_client_id
     }
   }
 
